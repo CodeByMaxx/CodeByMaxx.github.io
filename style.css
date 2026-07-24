@@ -1,1 +1,38 @@
+@media(max-width: 768px){
 
+.profile-image {
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.hero {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #333;
+}
+
+.hero-container {
+    display: flex;
+    align-items: center;
+    gap: 35px;
+}
+
+
+.profile-image img {
+
+    width: 160px;
+    height: 160px;
+
+}
+
+
+.hero-content h1 {
+
+    font-size: 2.2rem;
+
+}
+
+}
