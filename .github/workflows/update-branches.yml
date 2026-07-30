@@ -4,6 +4,12 @@ on:
   push:
   schedule:
     - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+
+permissions:
+  contents: write
+
 
 jobs:
 
@@ -11,8 +17,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
 
     steps:
 
@@ -21,30 +25,35 @@ jobs:
 
 
       - name: Generate branches.json
+
         env:
-          USERNAME: CodeByMaxx
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USERNAME: CodeByMaxx
 
         run: |
 
           mkdir -p assets
 
+
           echo "[" > assets/branches.json
 
-          FIRST=true
+
+          FIRST_REPO=true
 
 
-          repos=$(gh api \
-            users/$USERNAME/repos \
+          gh api \
             --paginate \
-            --jq '.[] | select(.fork == false) | .name')
-
-
-          for repo in $repos
+            /users/$USERNAME/repos \
+            --jq '.[] | select(.fork == false) | .name' \
+          | while read repo
           do
 
+
+            echo "Checking repository: $repo"
+
+
             branches=$(gh api \
-              repos/$USERNAME/$repo/branches \
+              /repos/$USERNAME/$repo/branches \
               --jq '
               .[].name |
               select(
@@ -55,38 +64,45 @@ jobs:
               ')
 
 
-            if [ -n "$branches" ]
-            then
+            if [ -n "$branches" ]; then
 
-              if [ "$FIRST" = false ]
-              then
+
+              if [ "$FIRST_REPO" = false ]; then
                 echo "," >> assets/branches.json
               fi
 
 
-              FIRST=false
+              FIRST_REPO=false
 
 
               echo "{" >> assets/branches.json
 
+
               echo "\"repository\":\"$repo\"," >> assets/branches.json
+
 
               echo "\"branches\":[" >> assets/branches.json
 
 
               echo "$branches" |
               awk '
-              BEGIN { ORS="," }
+              BEGIN { first=1 }
               {
-                print "\"" $0 "\""
+                if (!first) printf ","
+                printf "\"%s\"", $0
+                first=0
               }
-              ' |
-              sed 's/,$//' >> assets/branches.json
+              ' >> assets/branches.json
 
 
-              echo "]}" >> assets/branches.json
+              echo "]" >> assets/branches.json
+
+
+              echo "}" >> assets/branches.json
+
 
             fi
+
 
           done
 
@@ -95,19 +111,28 @@ jobs:
 
 
 
-      - name: Commit updated JSON
+      - name: Show generated file
+
+        run: |
+
+          cat assets/branches.json
+
+
+
+      - name: Commit changes
 
         run: |
 
           git config user.name "github-actions"
 
-          git config user.email "github-actions@github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 
           git add assets/branches.json
 
 
-          git commit -m "Update GitHub branches" || exit 0
+          git diff --cached --quiet || \
+          git commit -m "Update GitHub branches"
 
 
           git push
