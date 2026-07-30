@@ -99,16 +99,13 @@ problems.
 
 <div class="hero-buttons">
 
-
-<a href="assets/CV.pdf" class="button">
-Download CV
-</a>
-
-
 <a href="https://github.com/CodeByMaxx" class="button secondary">
 GitHub
 </a>
 
+<p>
+
+</p>
 
 <a href="https://www.linkedin.com/in/markus-gruber-70851428/" class="button secondary">
 LinkedIn
@@ -902,100 +899,24 @@ LinkedIn
 
 </p>
 
-<script>
 
-async function loadGitHubBranches() {
+<div class="project-card">
 
-    const container =
-        document.getElementById("branch-container");
+<h3>
+All GitHub Projects
+</h3>
 
+<p>
+Explore all public repositories, branches and development work.
+</p>
 
-    try {
+<a href="https://github.com/CodeByMaxx?tab=repositories&q=topic%3Aportfolio"
+   target="_blank">
+View GitHub Profile →
+</a>
 
-        const response =
-            await fetch("assets/branches.json");
+</div>
 
-
-        const repositories =
-            await response.json();
-
-
-        container.innerHTML = "";
-
-
-        repositories.forEach(repo => {
-
-
-            const box =
-                document.createElement("div");
-
-
-            box.className =
-                "branch-repository";
-
-
-            box.innerHTML = `
-
-                <h3>
-                    ${repo.repository}
-                </h3>
-
-
-                <ul>
-
-                ${
-                    repo.branches.map(branch => `
-
-                    <li>
-
-                    <a
-                    href="https://github.com/CodeByMaxx/${repo.repository}/tree/${branch}"
-                    target="_blank">
-
-                    ${branch}
-
-                    </a>
-
-                    </li>
-
-                    `).join("")
-                }
-
-                </ul>
-
-            `;
-
-
-            container.appendChild(box);
-
-
-        });
-
-
-        if (!repositories.length) {
-
-            container.innerHTML =
-                "No development branches found.";
-
-        }
-
-
-    }
-    catch(error) {
-
-        container.innerHTML =
-            "Unable to load branches.";
-
-        console.error(error);
-
-    }
-
-}
-
-
-loadGitHubBranches();
-
-</script>
 
 </div>
 
