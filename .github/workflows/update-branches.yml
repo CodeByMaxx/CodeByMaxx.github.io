@@ -42,15 +42,12 @@ jobs:
 
           gh api \
             --paginate \
-            /user/repos \
-            -f visibility=public \
-            -f affiliation=owner \
+            /users/CodeByMaxx/repos \
             --jq '.[] | select(.fork == false) | .name' \
           | while read repo
           do
 
-
-            echo "Checking $repo"
+            echo "Checking repository: $repo"
 
 
             branches=$(gh api \
@@ -65,10 +62,13 @@ jobs:
               ')
 
 
-            if [ -n "$branches" ]; then
+
+            if [ -n "$branches" ]
+            then
 
 
-              if [ "$FIRST" = false ]; then
+              if [ "$FIRST" = false ]
+              then
                 echo "," >> assets/branches.json
               fi
 
@@ -85,7 +85,7 @@ jobs:
 
               echo "$branches" |
               awk '
-              BEGIN {first=1}
+              BEGIN { first=1 }
               {
                 if (!first) printf ","
                 printf "\"%s\"", $0
@@ -99,11 +99,17 @@ jobs:
 
             fi
 
-
           done
 
 
           echo "]" >> assets/branches.json
+
+
+
+      - name: Show result
+
+        run: |
+          cat assets/branches.json
 
 
 
