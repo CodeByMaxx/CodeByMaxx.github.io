@@ -39,75 +39,75 @@ jobs:
           FIRST=true
 
 
-          echo "Searching portfolio repositories..."
-
-
           gh api \
             --paginate \
             /users/CodeByMaxx/repos \
-            --jq '
-            .[] |
-            select(
-              .topics |
-              index("portfolio")
-            ) |
-            .name
-            ' |
+            --jq '.[].name' |
           while read repo
           do
 
-            echo "Processing $repo"
+            echo "Checking repository: $repo"
 
 
-            branches=$(gh api \
-              /repos/CodeByMaxx/$repo/branches \
-              --jq '
-              .[].name |
-              select(
-                . != "main" and
-                . != "master" and
-                . != "develop"
-              )
-              ')
+            has_topic=$(gh api \
+              /repos/CodeByMaxx/$repo/topics \
+              --jq '.names | index("portfolio")')
 
 
-            if [ -n "$branches" ]
+            if [ "$has_topic" != "null" ]
             then
 
+              echo "Portfolio repository found: $repo"
 
-              if [ "$FIRST" = false ]
+
+              branches=$(gh api \
+                /repos/CodeByMaxx/$repo/branches \
+                --jq '
+                .[].name |
+                select(
+                  . != "main" and
+                  . != "master" and
+                  . != "develop"
+                )
+                ')
+
+
+              if [ -n "$branches" ]
               then
-                echo "," >> assets/branches.json
+
+
+                if [ "$FIRST" = false ]
+                then
+                  echo "," >> assets/branches.json
+                fi
+
+
+                FIRST=false
+
+
+                echo "{" >> assets/branches.json
+
+                echo "\"repository\":\"$repo\"," >> assets/branches.json
+
+                echo "\"branches\":[" >> assets/branches.json
+
+
+                echo "$branches" |
+                awk '
+                BEGIN {first=1}
+                {
+                  if (!first) printf ","
+                  printf "\"%s\"", $0
+                  first=0
+                }
+                ' >> assets/branches.json
+
+
+                echo "]}" >> assets/branches.json
+
               fi
 
-
-              FIRST=false
-
-
-              echo "{" >> assets/branches.json
-
-              echo "\"repository\":\"$repo\"," >> assets/branches.json
-
-
-              echo "\"branches\":[" >> assets/branches.json
-
-
-              echo "$branches" |
-              awk '
-              BEGIN { first=1 }
-              {
-                if (!first) printf ","
-                printf "\"%s\"", $0
-                first=0
-              }
-              ' >> assets/branches.json
-
-
-              echo "]}" >> assets/branches.json
-
-
             fi
-
 
           done
 
@@ -116,12 +116,9 @@ jobs:
 
 
 
-      - name: Show generated file
+      - name: Show result
 
-        run: |
-
-          echo "Generated branches.json:"
-          cat assets/branches.json
+        run: cat assets/branches.json
 
 
 
