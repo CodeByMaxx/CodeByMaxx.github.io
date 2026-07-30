@@ -1,0 +1,113 @@
+name: Update GitHub Branch List
+
+on:
+  push:
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+
+  update-branches:
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Generate branches.json
+        env:
+          USERNAME: CodeByMaxx
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        run: |
+
+          mkdir -p assets
+
+          echo "[" > assets/branches.json
+
+          FIRST=true
+
+
+          repos=$(gh api \
+            users/$USERNAME/repos \
+            --paginate \
+            --jq '.[] | select(.fork == false) | .name')
+
+
+          for repo in $repos
+          do
+
+            branches=$(gh api \
+              repos/$USERNAME/$repo/branches \
+              --jq '
+              .[].name |
+              select(
+                . != "main" and
+                . != "master" and
+                . != "develop"
+              )
+              ')
+
+
+            if [ -n "$branches" ]
+            then
+
+              if [ "$FIRST" = false ]
+              then
+                echo "," >> assets/branches.json
+              fi
+
+
+              FIRST=false
+
+
+              echo "{" >> assets/branches.json
+
+              echo "\"repository\":\"$repo\"," >> assets/branches.json
+
+              echo "\"branches\":[" >> assets/branches.json
+
+
+              echo "$branches" |
+              awk '
+              BEGIN { ORS="," }
+              {
+                print "\"" $0 "\""
+              }
+              ' |
+              sed 's/,$//' >> assets/branches.json
+
+
+              echo "]}" >> assets/branches.json
+
+            fi
+
+          done
+
+
+          echo "]" >> assets/branches.json
+
+
+
+      - name: Commit updated JSON
+
+        run: |
+
+          git config user.name "github-actions"
+
+          git config user.email "github-actions@github.com"
+
+
+          git add assets/branches.json
+
+
+          git commit -m "Update GitHub branches" || exit 0
+
+
+          git push
