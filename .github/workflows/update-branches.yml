@@ -1,138 +1,59 @@
-name: Update GitHub Branch List
+name: Debug GitHub Branch List
 
 on:
-  push:
-  schedule:
-    - cron: "0 */6 * * *"
   workflow_dispatch:
+  push:
 
 
 permissions:
-  contents: write
+  contents: read
 
 
 jobs:
 
-  update-branches:
+  debug:
 
     runs-on: ubuntu-latest
 
 
     steps:
 
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v5
 
 
-      - name: Generate branches.json
+      - name: Check repositories
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          USERNAME: CodeByMaxx
 
         run: |
 
-          mkdir -p assets
-
-
-          echo "[" > assets/branches.json
-
-
-          FIRST_REPO=true
-
+          echo "Repositories:"
 
           gh api \
+            /users/CodeByMaxx/repos \
             --paginate \
-            /users/$USERNAME/repos \
-            --jq '.[] | select(.fork == false) | .name' \
-          | while read repo
+            --jq '.[].name'
+
+
+      - name: Check branches
+
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        run: |
+
+          echo "Branches:"
+
+          for repo in $(gh api /users/CodeByMaxx/repos --paginate --jq '.[].name')
           do
 
+            echo "===================="
+            echo "Repository: $repo"
 
-            echo "Checking repository: $repo"
-
-
-            branches=$(gh api \
-              /repos/$USERNAME/$repo/branches \
-              --jq '
-              .[].name |
-              select(
-                . != "main" and
-                . != "master" and
-                . != "develop"
-              )
-              ')
-
-
-            if [ -n "$branches" ]; then
-
-
-              if [ "$FIRST_REPO" = false ]; then
-                echo "," >> assets/branches.json
-              fi
-
-
-              FIRST_REPO=false
-
-
-              echo "{" >> assets/branches.json
-
-
-              echo "\"repository\":\"$repo\"," >> assets/branches.json
-
-
-              echo "\"branches\":[" >> assets/branches.json
-
-
-              echo "$branches" |
-              awk '
-              BEGIN { first=1 }
-              {
-                if (!first) printf ","
-                printf "\"%s\"", $0
-                first=0
-              }
-              ' >> assets/branches.json
-
-
-              echo "]" >> assets/branches.json
-
-
-              echo "}" >> assets/branches.json
-
-
-            fi
-
+            gh api \
+              /repos/CodeByMaxx/$repo/branches \
+              --jq '.[].name'
 
           done
-
-
-          echo "]" >> assets/branches.json
-
-
-
-      - name: Show generated file
-
-        run: |
-
-          cat assets/branches.json
-
-
-
-      - name: Commit changes
-
-        run: |
-
-          git config user.name "github-actions"
-
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-
-          git add assets/branches.json
-
-
-          git diff --cached --quiet || \
-          git commit -m "Update GitHub branches"
-
-
-          git push
