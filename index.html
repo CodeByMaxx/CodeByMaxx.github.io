@@ -915,13 +915,7 @@ LinkedIn
 
 <script>
 
-
-const GITHUB_USER = "CodeByMaxx";
-
-
-
 async function loadGitHubBranches() {
-
 
     const container =
         document.getElementById("branch-container");
@@ -929,140 +923,81 @@ async function loadGitHubBranches() {
 
     try {
 
+        const response =
+            await fetch("assets/branches.json");
+
 
         const repositories =
-            await fetch(
-                `https://api.github.com/users/${GITHUB_USER}/repos?per_page=100`
-            )
-            .then(response => response.json());
-
+            await response.json();
 
 
         container.innerHTML = "";
 
 
-
-        for (const repo of repositories) {
-
+        repositories.forEach(repo => {
 
 
-            const events =
-                await fetch(
-                    `https://api.github.com/repos/${GITHUB_USER}/${repo.name}/events/public`
-                )
-                .then(response => response.json());
+            const box =
+                document.createElement("div");
 
 
-
-            const branches = new Set();
-
-
-
-            events.forEach(event => {
+            box.className =
+                "branch-repository";
 
 
-                if (
-                    event.type === "CreateEvent" &&
-                    event.payload.ref_type === "branch"
-                ) {
+            box.innerHTML = `
 
-                    branches.add(event.payload.ref);
+                <h3>
+                    ${repo.repository}
+                </h3>
 
+                <ul>
+
+                ${
+                    repo.branches.map(branch => `
+
+                    <li>
+
+                    <a
+                    href="https://github.com/CodeByMaxx/${repo.repository}/tree/${branch}"
+                    target="_blank">
+
+                    ${branch}
+
+                    </a>
+
+                    </li>
+
+                    `).join("")
                 }
 
+                </ul>
 
-            });
-
-
-
-            if (branches.size > 0) {
+            `;
 
 
-
-                const repositoryContainer =
-                    document.createElement("div");
+            container.appendChild(box);
 
 
-                repositoryContainer.className =
-                    "branch-repository";
-
-
-
-                repositoryContainer.innerHTML = `
-
-                    <h3>${repo.name}</h3>
-
-                    <ul>
-
-                    ${
-                        [...branches]
-                        .map(branch => `
-
-                        <li>
-
-                        <a 
-                        href="https://github.com/${GITHUB_USER}/${repo.name}/tree/${branch}"
-                        target="_blank">
-
-                        ${branch}
-
-                        </a>
-
-                        </li>
-
-                        `)
-                        .join("")
-                    }
-
-                    </ul>
-
-                `;
-
-
-
-                container.appendChild(repositoryContainer);
-
-
-            }
-
-
-        }
-
-
-
-        if (!container.innerHTML) {
-
-            container.innerHTML =
-                "No development branches found.";
-
-        }
-
+        });
 
 
     }
     catch(error) {
 
-
         container.innerHTML =
             "Unable to load GitHub branches.";
 
-
         console.error(error);
 
-
     }
-
 
 }
 
 
-
 loadGitHubBranches();
 
-
 </script>
-
-
 
 </body>
 
