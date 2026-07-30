@@ -2,6 +2,8 @@ name: Update GitHub Branch List
 
 on:
   push:
+  schedule:
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 
@@ -18,7 +20,7 @@ jobs:
 
     steps:
 
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v5
 
 
@@ -31,19 +33,30 @@ jobs:
 
           mkdir -p assets
 
+
           echo "[" > assets/branches.json
 
           FIRST=true
 
 
+          echo "Searching portfolio repositories..."
+
+
           gh api \
             --paginate \
             /users/CodeByMaxx/repos \
-            --jq '.[].name' |
+            --jq '
+            .[] |
+            select(
+              .topics |
+              index("portfolio")
+            ) |
+            .name
+            ' |
           while read repo
           do
 
-            echo "Checking $repo"
+            echo "Processing $repo"
 
 
             branches=$(gh api \
@@ -61,6 +74,7 @@ jobs:
             if [ -n "$branches" ]
             then
 
+
               if [ "$FIRST" = false ]
               then
                 echo "," >> assets/branches.json
@@ -71,13 +85,16 @@ jobs:
 
 
               echo "{" >> assets/branches.json
+
               echo "\"repository\":\"$repo\"," >> assets/branches.json
+
+
               echo "\"branches\":[" >> assets/branches.json
 
 
               echo "$branches" |
               awk '
-              BEGIN {first=1}
+              BEGIN { first=1 }
               {
                 if (!first) printf ","
                 printf "\"%s\"", $0
@@ -88,7 +105,9 @@ jobs:
 
               echo "]}" >> assets/branches.json
 
+
             fi
+
 
           done
 
@@ -96,21 +115,30 @@ jobs:
           echo "]" >> assets/branches.json
 
 
-      - name: Show result
 
-        run: cat assets/branches.json
+      - name: Show generated file
+
+        run: |
+
+          echo "Generated branches.json:"
+          cat assets/branches.json
 
 
-      - name: Commit
+
+      - name: Commit changes
 
         run: |
 
           git config user.name "github-actions"
+
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
 
           git add assets/branches.json
 
+
           git diff --cached --quiet || \
-          git commit -m "Update branches"
+          git commit -m "Update portfolio branches"
+
 
           git push
